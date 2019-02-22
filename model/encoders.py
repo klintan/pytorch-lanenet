@@ -8,7 +8,7 @@ from collections import OrderedDict
 from torch.nn import init
 
 from model.blocks import RegularBottleneck, DownsamplingBottleneck, InitialBlock, InputProjectionA, \
-    DilatedParllelResidualBlockB, DownSamplerB
+    DilatedParllelResidualBlockB, DownSamplerB, C, CB, CBR
 
 
 class VGGEncoder(nn.Module):
@@ -130,6 +130,7 @@ class ENetEncoder(nn.Module):
     def __init__(self, num_classes, encoder_relu=False, decoder_relu=True):
         super().__init__()
 
+    def forward(self, input):
         self.initial_block = InitialBlock(3, 16, padding=1, relu=encoder_relu)
 
         # Stage 1 - Encoder

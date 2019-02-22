@@ -1,6 +1,11 @@
 import torch.nn as nn
 import torch
 
+import numpy as np
+from torch.nn import Module, Sequential, Conv2d, ReLU, AdaptiveMaxPool2d, AdaptiveAvgPool2d, \
+    NLLLoss, BCELoss, CrossEntropyLoss, AvgPool2d, MaxPool2d, Parameter, Linear, Sigmoid, Softmax, Dropout, Embedding
+from torch.nn import functional as F
+from torch.autograd import Variable
 
 class InitialBlock(nn.Module):
     """The initial block is composed of two branches:
@@ -472,6 +477,7 @@ class CBR(nn.Module):
     '''
     This class defines the convolution layer with batch normalization and PReLU activation
     '''
+
     def __init__(self, nIn, nOut, kSize, stride=1):
         '''
         :param nIn: number of input channels
@@ -480,10 +486,10 @@ class CBR(nn.Module):
         :param stride: stride rate for down-sampling. Default is 1
         '''
         super().__init__()
-        padding = int((kSize - 1)/2)
-        #self.conv = nn.Conv2d(nIn, nOut, kSize, stride=stride, padding=padding, bias=False)
+        padding = int((kSize - 1) / 2)
+        # self.conv = nn.Conv2d(nIn, nOut, kSize, stride=stride, padding=padding, bias=False)
         self.conv = nn.Conv2d(nIn, nOut, (kSize, kSize), stride=stride, padding=(padding, padding), bias=False)
-        #self.conv1 = nn.Conv2d(nOut, nOut, (1, kSize), stride=1, padding=(0, padding), bias=False)
+        # self.conv1 = nn.Conv2d(nOut, nOut, (1, kSize), stride=1, padding=(0, padding), bias=False)
         self.bn = nn.BatchNorm2d(nOut, eps=1e-03)
         self.act = nn.PReLU(nOut)
 
@@ -493,7 +499,7 @@ class CBR(nn.Module):
         :return: transformed feature map
         '''
         output = self.conv(input)
-        #output = self.conv1(output)
+        # output = self.conv1(output)
         output = self.bn(output)
         output = self.act(output)
         return output
@@ -503,6 +509,7 @@ class BR(nn.Module):
     '''
         This class groups the batch normalization and PReLU activation
     '''
+
     def __init__(self, nOut):
         '''
         :param nOut: output feature maps
@@ -520,10 +527,12 @@ class BR(nn.Module):
         output = self.act(output)
         return output
 
+
 class CB(nn.Module):
     '''
        This class groups the convolution and batch normalization
     '''
+
     def __init__(self, nIn, nOut, kSize, stride=1):
         '''
         :param nIn: number of input channels
@@ -532,7 +541,7 @@ class CB(nn.Module):
         :param stride: optinal stide for down-sampling
         '''
         super().__init__()
-        padding = int((kSize - 1)/2)
+        padding = int((kSize - 1) / 2)
         self.conv = nn.Conv2d(nIn, nOut, (kSize, kSize), stride=stride, padding=(padding, padding), bias=False)
         self.bn = nn.BatchNorm2d(nOut, eps=1e-03)
 
@@ -545,10 +554,12 @@ class CB(nn.Module):
         output = self.bn(output)
         return output
 
+
 class C(nn.Module):
     '''
     This class is for a convolutional layer.
     '''
+
     def __init__(self, nIn, nOut, kSize, stride=1):
         '''
         :param nIn: number of input channels
@@ -557,7 +568,7 @@ class C(nn.Module):
         :param stride: optional stride rate for down-sampling
         '''
         super().__init__()
-        padding = int((kSize - 1)/2)
+        padding = int((kSize - 1) / 2)
         self.conv = nn.Conv2d(nIn, nOut, (kSize, kSize), stride=stride, padding=(padding, padding), bias=False)
 
     def forward(self, input):
@@ -568,10 +579,12 @@ class C(nn.Module):
         output = self.conv(input)
         return output
 
+
 class CDilated(nn.Module):
     '''
     This class defines the dilated convolution.
     '''
+
     def __init__(self, nIn, nOut, kSize, stride=1, d=1):
         '''
         :param nIn: number of input channels
@@ -581,8 +594,9 @@ class CDilated(nn.Module):
         :param d: optional dilation rate
         '''
         super().__init__()
-        padding = int((kSize - 1)/2) * d
-        self.conv = nn.Conv2d(nIn, nOut, (kSize, kSize), stride=stride, padding=(padding, padding), bias=False, dilation=d)
+        padding = int((kSize - 1) / 2) * d
+        self.conv = nn.Conv2d(nIn, nOut, (kSize, kSize), stride=stride, padding=(padding, padding), bias=False,
+                              dilation=d)
 
     def forward(self, input):
         '''
@@ -592,11 +606,12 @@ class CDilated(nn.Module):
         output = self.conv(input)
         return output
 
+
 class DownSamplerB(nn.Module):
     def __init__(self, nIn, nOut):
         super().__init__()
-        n = int(nOut/5)
-        n1 = nOut - 4*n
+        n = int(nOut / 5)
+        n1 = nOut - 4 * n
         self.c1 = C(nIn, n, 3, 2)
         self.d1 = CDilated(n, n1, 3, 1, 1)
         self.d2 = CDilated(n, n, 3, 1, 2)
@@ -619,17 +634,19 @@ class DownSamplerB(nn.Module):
         add3 = add2 + d8
         add4 = add3 + d16
 
-        combine = torch.cat([d1, add1, add2, add3, add4],1)
-        #combine_in_out = input + combine
+        combine = torch.cat([d1, add1, add2, add3, add4], 1)
+        # combine_in_out = input + combine
         output = self.bn(combine)
         output = self.act(output)
         return output
+
 
 class DilatedParllelResidualBlockB(nn.Module):
     '''
     This class defines the ESP block, which is based on the following principle
         Reduce ---> Split ---> Transform --> Merge
     '''
+
     def __init__(self, nIn, nOut, add=True):
         '''
         :param nIn: number of input channels
@@ -639,14 +656,14 @@ class DilatedParllelResidualBlockB(nn.Module):
                 increase the module complexity
         '''
         super().__init__()
-        n = int(nOut/5)
-        n1 = nOut - 4*n
+        n = int(nOut / 5)
+        n1 = nOut - 4 * n
         self.c1 = C(nIn, n, 1, 1)
-        self.d1 = CDilated(n, n1, 3, 1, 1) # dilation rate of 2^0
-        self.d2 = CDilated(n, n, 3, 1, 2) # dilation rate of 2^1
-        self.d4 = CDilated(n, n, 3, 1, 4) # dilation rate of 2^2
-        self.d8 = CDilated(n, n, 3, 1, 8) # dilation rate of 2^3
-        self.d16 = CDilated(n, n, 3, 1, 16) # dilation rate of 2^4
+        self.d1 = CDilated(n, n1, 3, 1, 1)  # dilation rate of 2^0
+        self.d2 = CDilated(n, n, 3, 1, 2)  # dilation rate of 2^1
+        self.d4 = CDilated(n, n, 3, 1, 4)  # dilation rate of 2^2
+        self.d8 = CDilated(n, n, 3, 1, 8)  # dilation rate of 2^3
+        self.d16 = CDilated(n, n, 3, 1, 16)  # dilation rate of 2^4
         self.bn = BR(nOut)
         self.add = add
 
@@ -670,7 +687,7 @@ class DilatedParllelResidualBlockB(nn.Module):
         add3 = add2 + d8
         add4 = add3 + d16
 
-        #merge
+        # merge
         combine = torch.cat([d1, add1, add2, add3, add4], 1)
 
         # if residual version
@@ -679,12 +696,14 @@ class DilatedParllelResidualBlockB(nn.Module):
         output = self.bn(combine)
         return output
 
+
 class InputProjectionA(nn.Module):
     '''
     This class projects the input image to the same spatial dimensions as the feature map.
     For example, if the input image is 512 x512 x3 and spatial dimensions of feature map size are 56x56xF, then
     this class will generate an output of 56x56x3
     '''
+
     def __init__(self, samplingTimes):
         '''
         :param samplingTimes: The rate at which you want to down-sample the image
@@ -692,7 +711,7 @@ class InputProjectionA(nn.Module):
         super().__init__()
         self.pool = nn.ModuleList()
         for i in range(0, samplingTimes):
-            #pyramid-based approach for down-sampling
+            # pyramid-based approach for down-sampling
             self.pool.append(nn.AvgPool2d(3, stride=2, padding=1))
 
     def forward(self, input):
@@ -703,3 +722,117 @@ class InputProjectionA(nn.Module):
         for pool in self.pool:
             input = pool(input)
         return input
+
+
+class DANetHead(nn.Module):
+    def __init__(self, in_channels, out_channels, norm_layer):
+        super(DANetHead, self).__init__()
+        inter_channels = in_channels // 4
+        self.conv5a = nn.Sequential(nn.Conv2d(in_channels, inter_channels, 3, padding=1, bias=False),
+                                    norm_layer(inter_channels),
+                                    nn.ReLU())
+
+        self.conv5c = nn.Sequential(nn.Conv2d(in_channels, inter_channels, 3, padding=1, bias=False),
+                                    norm_layer(inter_channels),
+                                    nn.ReLU())
+
+        self.sa = PAM_Module(inter_channels)
+        self.sc = CAM_Module(inter_channels)
+        self.conv51 = nn.Sequential(nn.Conv2d(inter_channels, inter_channels, 3, padding=1, bias=False),
+                                    norm_layer(inter_channels),
+                                    nn.ReLU())
+        self.conv52 = nn.Sequential(nn.Conv2d(inter_channels, inter_channels, 3, padding=1, bias=False),
+                                    norm_layer(inter_channels),
+                                    nn.ReLU())
+
+        self.conv6 = nn.Sequential(nn.Dropout2d(0.1, False), nn.Conv2d(inter_channels, out_channels, 1, bias=False))
+        self.conv7 = nn.Sequential(nn.Dropout2d(0.1, False), nn.Conv2d(inter_channels, out_channels, 1, bias=False))
+
+        self.conv8 = nn.Sequential(nn.Dropout2d(0.1, False), nn.Conv2d(inter_channels, out_channels, 1, bias=False))
+
+    def forward(self, x):
+        feat1 = self.conv5a(x)
+        sa_feat = self.sa(feat1)
+        sa_conv = self.conv51(sa_feat)
+        sa_output = self.conv6(sa_conv)
+
+        feat2 = self.conv5c(x)
+        sc_feat = self.sc(feat2)
+        sc_conv = self.conv52(sc_feat)
+        sc_output = self.conv7(sc_conv)
+
+        feat_sum = sa_conv + sc_conv
+
+        sasc_output = self.conv8(feat_sum)
+
+        return sasc_output
+
+
+class PAM_Module(Module):
+    """ Position attention module"""
+
+    # Ref from SAGAN
+    def __init__(self, in_dim):
+        super(PAM_Module, self).__init__()
+        self.chanel_in = in_dim
+
+        self.query_conv = Conv2d(in_channels=in_dim, out_channels=in_dim // 8, kernel_size=1)
+        self.key_conv = Conv2d(in_channels=in_dim, out_channels=in_dim // 8, kernel_size=1)
+        self.value_conv = Conv2d(in_channels=in_dim, out_channels=in_dim, kernel_size=1)
+        self.gamma = Parameter(torch.zeros(1))
+
+        self.softmax = Softmax(dim=-1)
+
+    def forward(self, x):
+        """
+            inputs :
+                x : input feature maps( B X C X H X W)
+            returns :
+                out : attention value + input feature
+                attention: B X (HxW) X (HxW)
+        """
+        m_batchsize, C, height, width = x.size()
+        proj_query = self.query_conv(x).view(m_batchsize, -1, width * height).permute(0, 2, 1)
+        proj_key = self.key_conv(x).view(m_batchsize, -1, width * height)
+        energy = torch.bmm(proj_query, proj_key)
+        attention = self.softmax(energy)
+        proj_value = self.value_conv(x).view(m_batchsize, -1, width * height)
+
+        out = torch.bmm(proj_value, attention.permute(0, 2, 1))
+        out = out.view(m_batchsize, C, height, width)
+
+        out = self.gamma * out + x
+        return out
+
+
+class CAM_Module(Module):
+    """ Channel attention module"""
+
+    def __init__(self, in_dim):
+        super(CAM_Module, self).__init__()
+        self.chanel_in = in_dim
+
+        self.gamma = Parameter(torch.zeros(1))
+        self.softmax = Softmax(dim=-1)
+
+    def forward(self, x):
+        """
+            inputs :
+                x : input feature maps( B X C X H X W)
+            returns :
+                out : attention value + input feature
+                attention: B X C X C
+        """
+        m_batchsize, C, height, width = x.size()
+        proj_query = x.view(m_batchsize, C, -1)
+        proj_key = x.view(m_batchsize, C, -1).permute(0, 2, 1)
+        energy = torch.bmm(proj_query, proj_key)
+        energy_new = torch.max(energy, -1, keepdim=True)[0].expand_as(energy) - energy
+        attention = self.softmax(energy_new)
+        proj_value = x.view(m_batchsize, C, -1)
+
+        out = torch.bmm(attention, proj_value)
+        out = out.view(m_batchsize, C, height, width)
+
+        out = self.gamma * out + x
+        return out

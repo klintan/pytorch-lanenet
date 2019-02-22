@@ -8,8 +8,8 @@ def test_hnet():
     gt_labels = torch.tensor([[[1.0, 1.0, 1.0], [2.0, 2.0, 1.0], [3.0, 3.0, 1.0]],
                               [[1.0, 1.0, 1.0], [2.0, 2.0, 1.0], [3.0, 3.0, 1.0]]],
                              dtype=torch.float32).view(6,3)
-    transformation_coffecient = torch.tensor([[0.58348501, -0.79861236, 2.30343866,
-                                               -0.09976104, -1.22268307, 2.43086767]],
+    transformation_coffecient = torch.tensor([0.58348501, -0.79861236, 2.30343866,
+                                               -0.09976104, -1.22268307, 2.43086767],
                                              dtype=torch.float32)
 
     # import numpy as np

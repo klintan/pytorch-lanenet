@@ -1,0 +1,2 @@
+./data/training_data_example/image/0004.png ./data/training_data_example/gt_image_binary/0004.png ./data/training_data_example/gt_image_instance/0004.png
+./data/training_data_example/image/0005.png ./data/training_data_example/gt_image_binary/0005.png ./data/training_data_example/gt_image_instance/0005.png

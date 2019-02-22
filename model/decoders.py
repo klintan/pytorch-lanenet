@@ -1,3 +1,7 @@
+import torch
+import torch.nn as nn
+from model.blocks import DANetHead
+
 class ESPNetDecoder():
     def __init__(self):
 
@@ -6,10 +10,13 @@ class ESPNetDecoder():
         self.br = nn.BatchNorm2d(classes, eps=1e-03)
         self.conv = CBR(19 + classes, classes, 3, 1)
 
-        self.up_l3 = nn.Sequential(nn.ConvTranspose2d(classes, classes, 2, stride=2, padding=0, output_padding=0, bias=False))
-        self.combine_l2_l3 = nn.Sequential(BR( 2 *classes), DilatedParllelResidualBlockB( 2 *classes , classes, add=False))
+        self.up_l3 = nn.Sequential(
+            nn.ConvTranspose2d(classes, classes, 2, stride=2, padding=0, output_padding=0, bias=False))
+        self.combine_l2_l3 = nn.Sequential(BR(2 * classes),
+                                           DilatedParllelResidualBlockB(2 * classes, classes, add=False))
 
-        self.up_l2 = nn.Sequential(nn.ConvTranspose2d(classes, classes, 2, stride=2, padding=0, output_padding=0, bias=False), BR(classes))
+        self.up_l2 = nn.Sequential(
+            nn.ConvTranspose2d(classes, classes, 2, stride=2, padding=0, output_padding=0, bias=False), BR(classes))
 
         self.classifier = nn.ConvTranspose2d(classes, classes, 2, stride=2, padding=0, output_padding=0, bias=False)
 
@@ -40,18 +47,17 @@ class ESPNetDecoder():
             else:
                 output2 = layer(output2)
 
-        output2_cat = self.modules[9](torch.cat([output2_0, output2], 1)) # concatenate for feature map width expansion
+        output2_cat = self.modules[9](torch.cat([output2_0, output2], 1))  # concatenate for feature map width expansion
 
         output2_c = self.up_l3(self.br(self.modules[10](output2_cat)))  # RUM
 
-        output1_C = self.level3_C(output1_cat) # project to C-dimensional space
+        output1_C = self.level3_C(output1_cat)  # project to C-dimensional space
         comb_l2_l3 = self.up_l2(self.combine_l2_l3(torch.cat([output1_C, output2_c], 1)))  # RUM
 
         concat_features = self.conv(torch.cat([comb_l2_l3, output0_cat], 1))
 
         classifier = self.classifier(concat_features)
         return classifier
-
 
 
 class ENetDecoder():
@@ -123,3 +129,47 @@ class ENetDecoder():
         return x
 
 
+class FCNDecoder(nn.Module):
+    def __init__(self, decode_layers, decode_channels, decode_last_stride, cout=64):
+        super(FCNDecoder, self).__init__()
+        self._in_channels = decode_channels
+        self._out_channel = 64
+        self._decode_layers = decode_layers
+        self.score_net = nn.Sequential()
+        self.deconv_net = nn.Sequential()
+        self.bn_net = nn.Sequential()
+        self.head = DANetHead(cout * 8, cout * 8, nn.BatchNorm2d)
+        self.prehead = nn.Sequential(nn.Conv2d(cout, cout * 8, 1, bias=False), nn.BatchNorm2d(cout * 8), nn.ReLU())
+        for i, cin in enumerate(self._in_channels):
+            self.score_net.add_module("conv" + str(i + 1), self._conv_stage(cin, cout))
+            if i > 0:
+                self.deconv_net.add_module("deconv" + str(i), self._deconv_stage(cout))
+        k_size = 2 * decode_last_stride
+        padding = decode_last_stride // 2
+        self.deconv_last = nn.ConvTranspose2d(cout * 8, cout, k_size, stride=decode_last_stride, padding=padding,
+                                              bias=False)
+
+    def _conv_stage(self, cin, cout):
+        return nn.Conv2d(cin, cout, 1, stride=1, bias=False)
+
+    def _deconv_stage(self, cout):
+        return nn.ConvTranspose2d(cout, cout, 4, stride=2, padding=1, bias=False)
+
+    def forward(self, encode_data):
+        ret = {}
+        for i, layer in enumerate(self._decode_layers):
+            # print(layer,encode_data[layer].size())
+            if i > 0:
+                deconv = self.deconv_net[i - 1](score)
+                # print("deconv from"+self._decode_layers[i-1],deconv.size())
+            input_tensor = encode_data[layer]
+            score = self.score_net[i](input_tensor)
+            # print("conv from"+layer,score.size())
+            if i > 0:
+                score = deconv + score
+        score = self.prehead(score)
+        score = self.head(score)
+        deconv_final = self.deconv_last(score)
+        # print("deconv_final",deconv_final.size())
+
+        return deconv_final

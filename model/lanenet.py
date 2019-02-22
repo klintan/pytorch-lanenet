@@ -10,33 +10,30 @@ import sys
 import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from encoder_decoder_model import vgg_encoder, sknet_encoder
-from encoder_decoder_model import fcn_decoder
 from torch.nn import init
 from model.loss import DiscriminativeLoss
 import math
-
+from model.encoders import VGGEncoder
+from model.decoders import FCNDecoder
 
 class LaneNet(nn.Module):
-    def __init__(self, net_flag="vgg"):
+    def __init__(self, arch="VGG"):
 
         super(LaneNet, self).__init__()
         encode_num_blocks = 5
         in_channels = [3, 64, 128, 256, 512]
         out_channels = in_channels[1:] + [512]
-        self._net_flag = net_flag
-        if self._net_flag == 'vgg':
-            self._encoder = vgg_encoder.VGGEncoder(encode_num_blocks, in_channels, out_channels)
+        self._arch = arch
+        if self._arch == 'VGG':
+            self._encoder = VGGEncoder(encode_num_blocks, in_channels, out_channels)
             decode_layers = ["pool5", "pool4", "pool3"]
             decode_channels = out_channels[:-len(decode_layers) - 1:-1]
             decode_last_stride = 8
-            self._decoder = fcn_decoder.FCNDecoder(decode_layers, decode_channels, decode_last_stride)
-        elif self._net_flag == 'sknet':
-            self._encoder = sknet_encoder.SKEncoder()
-            decode_channels = [1024, 512, 256]
-            decode_layers = ["pool3", "pool2", "pool1"]
-            decode_last_stride = 4
-            self._decoder = fcn_decoder.FCNDecoder(decode_layers, decode_channels, decode_last_stride)
+            self._decoder = FCNDecoder(decode_layers, decode_channels, decode_last_stride)
+        elif self._arch == 'ESPNet':
+            raise NotImplementedError
+        elif self._arch == 'ENNet':
+            raise NotImplementedError
 
         self._pix_layer = nn.Sequential(nn.Conv2d(64, 3, 1, bias=False), nn.ReLU())
 

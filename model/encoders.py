@@ -49,7 +49,6 @@ class VGGEncoder(nn.Module):
         X = input_tensor
         for i, block in enumerate(self.net):
             pool = block(X)
-            #             print("pool"+str(i+1),pool.size())
             ret["pool" + str(i + 1)] = pool
 
             X = pool

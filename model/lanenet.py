@@ -42,27 +42,17 @@ class LaneNet(nn.Module):
         decode_ret = self._decoder(encode_ret)
 
         decode_logits = decode_ret['logits']
-        #         print(decode_logits.size())
-        #         print(binary_label.size())
+
         if torch.cuda.is_available():
             decode_logits = decode_logits.cuda()
         binary_seg_ret = torch.argmax(F.softmax(decode_logits, dim=1), dim=1, keepdim=True)
-        # binary_seg_ret = torch.sigmoid(decode_logits).ge(0.5)
-        #        loss_fn = nn.CrossEntropyLoss()
-        #       binary_seg_loss = loss_fn(decode_logits,binary_label)
 
         decode_deconv = decode_ret['deconv']
         pix_embedding = self._pix_layer(decode_deconv)
-        #        disc_loss, l_var, l_dist, l_reg = discriminative_loss(pix_embedding,instance_label,3,0.5,1.5,1.0,1.0,0.001)
-        #       total_loss = 0.7*binary_seg_loss + 0.3*disc_loss
         ret = {
-            #           'total_loss':total_loss,
             'instance_seg_logits': pix_embedding,
-            #            'disc_loss':disc_loss,
             'binary_seg_pred': binary_seg_ret,
             'binary_seg_logits': decode_logits
-            #            'binary_seg_loss':binary_seg_loss
-
         }
 
         return ret

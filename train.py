@@ -9,10 +9,10 @@ from torch.utils.data import DataLoader
 from torch.autograd import Variable
 
 from utils.cli_helper import parse_args
-from test import test
 
 import numpy as np
 import cv2
+
 
 class AverageMeter():
     """Computes and stores the average and current value
@@ -115,7 +115,6 @@ def main():
     if not os.path.isdir(save_path):
         os.makedirs(save_path)
 
-
     train_dataset_file = os.path.join(args.dataset, 'train.txt')
     val_dataset_file = os.path.join(args.dataset, 'val.txt')
 
@@ -133,11 +132,12 @@ def main():
 
     for epoch in range(0, args.epochs):
         train_iou = train(train_loader, model, optimizer, epoch)
-        val_iou = test(val_loader, model, epoch)
+        #val_iou = test(val_loader, model, epoch)
         if (epoch + 1) % 5 == 0:
-            save_model(save_path, epoch, model)
-        best_iou = max(val_iou, best_iou)
-        print('Best IoU : {}'.format(best_iou))
+            print("should save model")
+            #save_model(save_path, epoch, model)
+        #best_iou = max(val_iou, best_iou)
+        print(f"Best IoU : {train_iou}")
 
 
 if __name__ == '__main__':

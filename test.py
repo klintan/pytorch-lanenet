@@ -1,3 +1,5 @@
+from train import AverageMeter
+
 def test(val_loader, model, epoch):
     model.eval()
     step = 0

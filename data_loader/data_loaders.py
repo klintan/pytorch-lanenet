@@ -45,7 +45,7 @@ class LaneDataSet(Dataset):
                == len(self._gt_img_list)
 
         img = cv2.imread(self._gt_img_list[idx], cv2.IMREAD_COLOR)
-
+        img = img.reshape(img.shape[2], img.shape[0], img.shape[1])
 
         label_img = cv2.imread(self._gt_label_binary_list[idx], cv2.IMREAD_COLOR)
         label_binary = np.zeros([label_img.shape[0], label_img.shape[1]], dtype=np.uint8)

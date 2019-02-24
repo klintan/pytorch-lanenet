@@ -14,10 +14,11 @@ from torchvision import datasets, transforms
 import random
 
 class LaneDataSet(Dataset):
-    def __init__(self, dataset):
+    def __init__(self, dataset, transform):
         self._gt_img_list = []
         self._gt_label_binary_list = []
         self._gt_label_instance_list = []
+        self.transform = transform
 
         with open(dataset, 'r') as file:
             for _info in file:
@@ -44,15 +45,27 @@ class LaneDataSet(Dataset):
         assert len(self._gt_label_binary_list) == len(self._gt_label_instance_list) \
                == len(self._gt_img_list)
 
+        # load all
         img = cv2.imread(self._gt_img_list[idx], cv2.IMREAD_COLOR)
-        img = img.reshape(img.shape[2], img.shape[0], img.shape[1])
+
+        label_instance_img = cv2.imread(self._gt_label_instance_list[idx], cv2.IMREAD_UNCHANGED)
 
         label_img = cv2.imread(self._gt_label_binary_list[idx], cv2.IMREAD_COLOR)
+
+
+        # optional transformations
+        if self.transform:
+            img = self.transform(img)
+            label_img = self.transform(label_img)
+            label_instance_img = self.transform(label_instance_img)
+
+        # reshape for pytorch
+        # tensorflow: [height, width, channels]
+        # pytorch: [channels, height, width]
+        img = img.reshape(img.shape[2], img.shape[0], img.shape[1])
+
         label_binary = np.zeros([label_img.shape[0], label_img.shape[1]], dtype=np.uint8)
         mask = np.where((label_img[:, :, :] != [0, 0, 0]).all(axis=2))
-
         label_binary[mask] = 1
 
-        label_img = cv2.imread(self._gt_label_instance_list[idx], cv2.IMREAD_UNCHANGED)
-
-        return (img, label_binary, label_img)
+        return (img, label_binary, label_instance_img)

@@ -15,7 +15,7 @@ class DiscriminativeLoss(_Loss):
 
     def __init__(self, delta_var=0.5, delta_dist=1.5,
                  norm=2, alpha=1.0, beta=1.0, gamma=0.001,
-                 usegpu=True, size_average=True):
+                 usegpu=False, size_average=True):
         super(DiscriminativeLoss, self).__init__(size_average)
         self.delta_var = delta_var
         self.delta_dist = delta_dist
@@ -27,7 +27,7 @@ class DiscriminativeLoss(_Loss):
         assert self.norm in [1, 2]
 
     def forward(self, input, target, n_clusters):
-        _assert_no_grad(target)
+        #_assert_no_grad(target)
         return self._discriminative_loss(input, target, n_clusters)
 
     def _discriminative_loss(self, input, target, n_clusters):

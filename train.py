@@ -4,9 +4,12 @@ import sys
 
 import torch
 from data_loader.data_loaders import LaneDataSet
-from model.lanenet import LaneNet
+from data_loader.transformers import Rescale
+from model.lanenet import LaneNet, compute_loss
 from torch.utils.data import DataLoader
 from torch.autograd import Variable
+
+from torchvision import transforms, utils
 
 from utils.cli_helper import parse_args
 
@@ -54,7 +57,7 @@ def train(train_loader, model, optimizer, epoch):
         net_output = model(image_data)
 
         # compute loss
-        total_loss, binary_loss, instance_loss, out, train_iou = output_loss(net_output, binary_label, instance_label)
+        total_loss, binary_loss, instance_loss, out, train_iou = compute_loss(net_output, binary_label, instance_label)
 
         # update loss in AverageMeter instance
         total_losses.update(total_loss.item(), image_data.size()[0])
@@ -118,25 +121,23 @@ def main():
     train_dataset_file = os.path.join(args.dataset, 'train.txt')
     val_dataset_file = os.path.join(args.dataset, 'val.txt')
 
-    train_dataset = LaneDataSet(train_dataset_file)
-    val_dataset = LaneDataSet(val_dataset_file)
+    train_dataset = LaneDataSet(train_dataset_file, transform=transforms.Compose([Rescale((256, 512))]))
+    val_dataset = LaneDataSet(val_dataset_file, transform=transforms.Compose([Rescale((256, 512))]))
 
     model = LaneNet()
 
     train_loader = DataLoader(train_dataset, batch_size=8, num_workers=8, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=8, num_workers=8, shuffle=True)
 
-    model = model
-
     optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
 
     for epoch in range(0, args.epochs):
         train_iou = train(train_loader, model, optimizer, epoch)
-        #val_iou = test(val_loader, model, epoch)
+        # val_iou = test(val_loader, model, epoch)
         if (epoch + 1) % 5 == 0:
             print("should save model")
-            #save_model(save_path, epoch, model)
-        #best_iou = max(val_iou, best_iou)
+            # save_model(save_path, epoch, model)
+        # best_iou = max(val_iou, best_iou)
         print(f"Best IoU : {train_iou}")
 
 

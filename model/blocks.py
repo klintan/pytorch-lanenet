@@ -641,7 +641,7 @@ class DownSamplerB(nn.Module):
         return output
 
 
-class DilatedParllelResidualBlockB(nn.Module):
+class DilatedParallelResidualBlockB(nn.Module):
     '''
     This class defines the ESP block, which is based on the following principle
         Reduce ---> Split ---> Transform --> Merge

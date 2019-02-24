@@ -8,7 +8,7 @@ from collections import OrderedDict
 from torch.nn import init
 
 from model.blocks import RegularBottleneck, DownsamplingBottleneck, InitialBlock, InputProjectionA, \
-    DilatedParllelResidualBlockB, DownSamplerB, C, CB, CBR
+    DilatedParallelResidualBlockB, DownSamplerB, C, CB, CBR, BR
 
 
 class VGGEncoder(nn.Module):
@@ -76,13 +76,13 @@ class ESPNetEncoder(nn.Module):
 
         self.level2 = nn.ModuleList()
         for i in range(0, p):
-            self.level2.append(DilatedParllelResidualBlockB(64, 64))
+            self.level2.append(DilatedParallelResidualBlockB(64, 64))
         self.b2 = BR(128 + 3)
 
         self.level3_0 = DownSamplerB(128 + 3, 128)
         self.level3 = nn.ModuleList()
         for i in range(0, q):
-            self.level3.append(DilatedParllelResidualBlockB(128, 128))
+            self.level3.append(DilatedParallelResidualBlockB(128, 128))
         self.b3 = BR(256)
 
         self.classifier = C(256, classes, 1, 1)

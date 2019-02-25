@@ -15,6 +15,7 @@ class Rescale():
         self.output_size = output_size
 
     def __call__(self, sample):
-        sample = resize(sample, self.output_size)
+        #sample = resize(sample, self.output_size)
+        sample = cv2.resize(sample, dsize=self.output_size, interpolation=cv2.INTER_NEAREST)
 
         return sample

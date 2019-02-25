@@ -50,8 +50,9 @@ def train(train_loader, model, optimizer, epoch):
     for batch_idx, batch in enumerate(train_loader):
         step += 1
         image_data = Variable(batch[0]).type(torch.FloatTensor)
-        instance_label = Variable(batch[1]).type(torch.LongTensor)
-        binary_label = Variable(batch[2]).type(torch.LongTensor)
+        binary_label = Variable(batch[1]).type(torch.LongTensor)
+        instance_label = Variable(batch[2]).type(torch.LongTensor)
+
 
         # forward pass
         net_output = model(image_data)

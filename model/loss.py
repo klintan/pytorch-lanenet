@@ -9,6 +9,7 @@ https://github.com/Wizaron/instance-segmentation-pytorch
 from torch.nn.modules.loss import _Loss
 from torch.autograd import Variable
 import torch
+from torch.functional import F
 
 
 class DiscriminativeLoss(_Loss):
@@ -16,7 +17,7 @@ class DiscriminativeLoss(_Loss):
     def __init__(self, delta_var=0.5, delta_dist=1.5,
                  norm=2, alpha=1.0, beta=1.0, gamma=0.001,
                  usegpu=False, size_average=True):
-        super(DiscriminativeLoss, self).__init__(size_average)
+        super(DiscriminativeLoss, self).__init__(reduction='mean')
         self.delta_var = delta_var
         self.delta_dist = delta_dist
         self.norm = norm
@@ -27,7 +28,7 @@ class DiscriminativeLoss(_Loss):
         assert self.norm in [1, 2]
 
     def forward(self, input, target, n_clusters):
-        #_assert_no_grad(target)
+        # _assert_no_grad(target)
         return self._discriminative_loss(input, target, n_clusters)
 
     def _discriminative_loss(self, input, target, n_clusters):
@@ -64,6 +65,7 @@ class DiscriminativeLoss(_Loss):
             # 1, n_clusters, n_loc,
             target_sample = target[i, :, :n_clusters[i]]
             # n_features, n_cluster
+            # this one gets floating point exception as of now.
             mean_sample = input_sample.sum(2) / target_sample.sum(2)
 
             # padding
@@ -200,7 +202,7 @@ class HNetLoss(_Loss):
         Y_stack = torch.stack((torch.pow(Y, 3), torch.pow(Y, 2), Y, Y_One), dim=1).squeeze()
         w = torch.matmul(torch.matmul(torch.inverse(torch.matmul(Y_stack.t(), Y_stack)),
                                       Y_stack.t()),
-                         X.view(-1,1))
+                         X.view(-1, 1))
 
         x_preds = torch.matmul(Y_stack, w)
         preds = torch.stack((x_preds.squeeze(), Y, Y_One), dim=1).t()

@@ -8,20 +8,17 @@ import torch.nn as nn
 import torch.nn.functional as F
 import sys
 import os
-from model.loss import DiscriminativeLoss
-
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from torch.nn import init
 from model.loss import DiscriminativeLoss
-import math
 from model.encoders import VGGEncoder
 from model.decoders import FCNDecoder
 
 
 class LaneNet(nn.Module):
     def __init__(self, arch="VGG"):
-
         super(LaneNet, self).__init__()
+        # no of instances for segmentation
+        self.no_of_instances = 5
         encode_num_blocks = 5
         in_channels = [3, 64, 128, 256, 512]
         out_channels = in_channels[1:] + [512]
@@ -37,7 +34,7 @@ class LaneNet(nn.Module):
         elif self._arch == 'ENNet':
             raise NotImplementedError
 
-        self._pix_layer = nn.Conv2d(in_channels=64, out_channels=3, kernel_size=1, bias=False)
+        self._pix_layer = nn.Conv2d(in_channels=64, out_channels=self.no_of_instances, kernel_size=1, bias=False)
         self.relu = nn.ReLU()
 
     def forward(self, input_tensor):
@@ -55,7 +52,7 @@ class LaneNet(nn.Module):
         pix_embedding = self.relu(self._pix_layer(decode_deconv))
 
         ret = {
-            'instance_seg_logits': pix_embedding,
+            'instance_seg_logits': pix_embedding.type(torch.LongTensor),
             'binary_seg_pred': binary_seg_ret,
             'binary_seg_logits': decode_logits
         }
@@ -74,12 +71,11 @@ def compute_loss(net_output, binary_label, instance_label):
     pix_embedding = net_output["instance_seg_logits"]
     ds_loss_fn = DiscriminativeLoss(0.5, 1.5, 1.0, 1.0, 0.001)
 
-    instance_loss, _, _, _ = ds_loss_fn(pix_embedding, instance_label, 3)
+    instance_loss, _, _, _ = ds_loss_fn(pix_embedding, instance_label, [5] * len(pix_embedding))
     binary_loss = binary_loss * k_binary
     instance_loss = instance_loss * k_instance
     total_loss = binary_loss + instance_loss
     out = net_output["binary_seg_pred"]
-    # pix_cls = out[binary_label]
     iou = 0
     batch_size = out.size()[0]
     for i in range(batch_size):
@@ -91,12 +87,3 @@ def compute_loss(net_output, binary_label, instance_label):
     iou = iou / batch_size
     return total_loss, binary_loss, instance_loss, out, iou
 
-
-if __name__ == '__main__':
-    model = LaneNet("sknet")
-    input_tensor = torch.rand(4, 3, 256, 512, dtype=torch.float32)
-    binary_label = torch.randint(1, (4, 1, 256, 512), dtype=torch.long)
-    instance_label = torch.randint(4, (4, 1, 256, 512), dtype=torch.long)
-    net_output = model(input_tensor, binary_label, instance_label)
-
-    print("logits", net_output['logits'].shape)

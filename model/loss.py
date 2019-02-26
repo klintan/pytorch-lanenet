@@ -45,7 +45,7 @@ class DiscriminativeLoss(_Loss):
 
         loss = self.alpha * l_var + self.beta * l_dist + self.gamma * l_reg
 
-        return loss
+        return loss, l_var, l_dist, l_reg
 
     def _cluster_means(self, input, target, n_clusters):
         bs, n_features, n_loc = input.size()
@@ -65,8 +65,9 @@ class DiscriminativeLoss(_Loss):
             # 1, n_clusters, n_loc,
             target_sample = target[i, :, :n_clusters[i]]
             # n_features, n_cluster
-            # this one gets floating point exception as of now.
+            # if both input and target is zero, NaN mean is 0.
             mean_sample = input_sample.sum(2) / target_sample.sum(2)
+            #mean_sample[torch.isnan(mean_sample)] = 0
 
             # padding
             n_pad_clusters = max_n_clusters - n_clusters[i]

@@ -16,6 +16,27 @@ from utils.cli_helper import parse_args
 import numpy as np
 import cv2
 
+# might want this in the transformer part as well
+VGG_MEAN = [103.939, 116.779, 123.68]
+
+
+def compose_img(image_data, out, binary_label, pix_embedding, instance_label, i):
+    val_gt = (image_data[i].cpu().numpy().transpose(1, 2, 0) + VGG_MEAN).astype(np.uint8)
+    val_pred = out[i].squeeze(0).cpu().numpy().transpose(0, 1) * 255
+    val_label = binary_label[i].squeeze(0).cpu().numpy().transpose(0, 1) * 255
+    val_out = np.zeros((val_pred.shape[0], val_pred.shape[1], 3), dtype=np.uint8)
+    val_out[:, :, 0] = val_pred
+    val_out[:, :, 1] = val_label
+    val_gt[val_out == 255] = 255
+    epsilon = 1e-5
+    pix_embedding = pix_embedding[i].data.cpu().numpy()
+    pix_vec = pix_embedding / (np.sum(pix_embedding, axis=0, keepdims=True) + epsilon) * 255
+    pix_vec = np.round(pix_vec).astype(np.uint8).transpose(1, 2, 0)
+    ins_label = instance_label[i].data.cpu().numpy().transpose(0, 1)
+    ins_label = np.repeat(np.expand_dims(ins_label, -1), 3, -1)
+    val_img = np.concatenate((val_gt, pix_vec, ins_label), axis=0)
+    return val_img
+
 
 class AverageMeter():
     """Computes and stores the average and current value
@@ -51,8 +72,7 @@ def train(train_loader, model, optimizer, epoch):
         step += 1
         image_data = Variable(batch[0]).type(torch.FloatTensor)
         binary_label = Variable(batch[1]).type(torch.LongTensor)
-        instance_label = Variable(batch[2]).type(torch.LongTensor)
-
+        instance_label = Variable(batch[2]).type(torch.FloatTensor)
 
         # forward pass
         net_output = model(image_data)
@@ -83,11 +103,13 @@ def train(train_loader, model, optimizer, epoch):
             print('cost is: {:.5f}'.format(total_loss.item()))
             print('binary cost is: {:.5f}'.format(binary_loss.item()))
             print('instance cost is: {:.5f}'.format(instance_loss.item()))
-            cv2.imwrite('nan_image.png', image_data[0].cpu().numpy().transpose(1, 2, 0) + VGG_MEAN)
-            cv2.imwrite('nan_instance_label.png', image_data[0].cpu().numpy().transpose(1, 2, 0))
-            cv2.imwrite('nan_binary_label.png', binary_label[0].cpu().numpy().transpose(1, 2, 0) * 255)
-            cv2.imwrite('nan_embedding.png', pix_embedding[0].cpu().numpy().transpose(1, 2, 0))
-            break
+            # image_data[0].view(image_data[0].size()[2],image_data[0].size()[1], image_data[0].size()[0]).cpu().numpy()
+            cv2.imwrite('nan_image.png', image_data[0].view(image_data[0].size()[1], image_data[0].size()[2],
+                                                            image_data[0].size()[0]).cpu().numpy() + VGG_MEAN)
+            cv2.imwrite('nan_instance_label.png', image_data[0].view(image_data[0].size()[1], image_data[0].size()[2],
+                                                                     image_data[0].size()[0]).cpu().numpy())
+            cv2.imwrite('nan_binary_label.png', binary_label[0].cpu().numpy() * 255)
+            # cv2.imwrite('nan_embedding.png', pix_embedding[0].cpu().numpy().transpose(1, 2, 0))
         if step % 500 == 0:
             print(
                 "Epoch {ep} Step {st} |({batch}/{size})| ETA: {et:.2f}|Total:{tot:.5f}|Binary:{bin:.5f}|Instance:{ins:.5f}|IoU:{iou:.5f}".format(
@@ -122,13 +144,13 @@ def main():
     train_dataset_file = os.path.join(args.dataset, 'train.txt')
     val_dataset_file = os.path.join(args.dataset, 'val.txt')
 
-    train_dataset = LaneDataSet(train_dataset_file, transform=transforms.Compose([Rescale((256, 512))]))
-    val_dataset = LaneDataSet(val_dataset_file, transform=transforms.Compose([Rescale((256, 512))]))
+    train_dataset = LaneDataSet(train_dataset_file, transform=transforms.Compose([Rescale((512, 256))]))
+    val_dataset = LaneDataSet(val_dataset_file, transform=transforms.Compose([Rescale((512, 256))]))
 
     model = LaneNet()
 
-    train_loader = DataLoader(train_dataset, batch_size=8, num_workers=8, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=8, num_workers=8, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=4, shuffle=True)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
 

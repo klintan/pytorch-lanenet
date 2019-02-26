@@ -52,7 +52,7 @@ class LaneNet(nn.Module):
         pix_embedding = self.relu(self._pix_layer(decode_deconv))
 
         ret = {
-            'instance_seg_logits': pix_embedding.type(torch.LongTensor),
+            'instance_seg_logits': pix_embedding,
             'binary_seg_pred': binary_seg_ret,
             'binary_seg_logits': decode_logits
         }

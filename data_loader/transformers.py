@@ -6,7 +6,7 @@ class Rescale():
     """Rescale the image in a sample to a given size.
 
     Args:
-        output_size (height, width) (tuple): Desired output size (width, height). Output is
+        output_size (width, height) (tuple): Desired output size (width, height). Output is
             matched to output_size.
     """
 

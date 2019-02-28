@@ -8,10 +8,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 import sys
 import os
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from model.loss import DiscriminativeLoss
 from model.encoders import VGGEncoder
 from model.decoders import FCNDecoder
+
+import torchvision.models as models
+
+DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 
 class LaneNet(nn.Module):
@@ -25,17 +30,21 @@ class LaneNet(nn.Module):
         self._arch = arch
         if self._arch == 'VGG':
             self._encoder = VGGEncoder(encode_num_blocks, in_channels, out_channels)
+            self._encoder.to(DEVICE)
+
             decode_layers = ["pool5", "pool4", "pool3"]
             decode_channels = out_channels[:-len(decode_layers) - 1:-1]
             decode_last_stride = 8
             self._decoder = FCNDecoder(decode_layers, decode_channels, decode_last_stride)
+            self._decoder.to(DEVICE)
         elif self._arch == 'ESPNet':
             raise NotImplementedError
         elif self._arch == 'ENNet':
             raise NotImplementedError
 
-        self._pix_layer = nn.Conv2d(in_channels=64, out_channels=self.no_of_instances, kernel_size=1, bias=False)
-        self.relu = nn.ReLU()
+        self._pix_layer = nn.Conv2d(in_channels=64, out_channels=self.no_of_instances, kernel_size=1, bias=False).to(
+            DEVICE)
+        self.relu = nn.ReLU().cuda()
 
     def forward(self, input_tensor):
         encode_ret = self._encoder(input_tensor)
@@ -86,4 +95,3 @@ def compute_loss(net_output, binary_label, instance_label):
         iou += TP / union
     iou = iou / batch_size
     return total_loss, binary_loss, instance_loss, out, iou
-

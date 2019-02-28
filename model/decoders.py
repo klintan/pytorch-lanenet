@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 from model.blocks import DANetHead
 
+DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
 
 class ESPNetDecoder():
     def __init__(self):
@@ -130,53 +132,6 @@ class ENetDecoder():
         return x
 
 
-# class FCNDecoder(nn.Module):
-#     def __init__(self, decode_layers, decode_channels, decode_last_stride, cout=64):
-#         super(FCNDecoder, self).__init__()
-#         self._in_channels = decode_channels
-#         self._out_channel = 64
-#         self._decode_layers = decode_layers
-#
-#         self.score_net = nn.Sequential()
-#         self.deconv_net = nn.Sequential()
-#         self.bn_net = nn.Sequential()
-#         self.head = DANetHead(cout * 8, cout * 8, nn.BatchNorm2d)
-#         self.prehead = nn.Sequential(nn.Conv2d(cout, cout * 8, 1, bias=False), nn.BatchNorm2d(cout * 8), nn.ReLU())
-#         for i, cin in enumerate(self._in_channels):
-#             self.score_net.add_module("conv" + str(i + 1), self._conv_stage(cin, cout))
-#             if i > 0:
-#                 self.deconv_net.add_module("deconv" + str(i), self._deconv_stage(cout))
-#         k_size = 2 * decode_last_stride
-#         padding = decode_last_stride // 2
-#         self.deconv_last = nn.ConvTranspose2d(cout * 8, cout, k_size, stride=decode_last_stride, padding=padding,
-#                                               bias=False)
-#
-#     def _conv_stage(self, cin, cout):
-#         return nn.Conv2d(cin, cout, 1, stride=1, bias=False)
-#
-#     def _deconv_stage(self, cout):
-#         return nn.ConvTranspose2d(cout, cout, 4, stride=2, padding=1, bias=False)
-#
-#     def forward(self, encode_data):
-#         ret = {}
-#         for i, layer in enumerate(self._decode_layers):
-#             input_tensor = encode_data[layer]
-#
-#             if i > 0:
-#                 deconv = self.deconv_net[i - 1](score)
-#             score = self.score_net[i](input_tensor)
-#             #if i > 0:
-#             #    score = deconv + score
-#         score = self.prehead(score)
-#         score = self.head(score)
-#         deconv_final = self.deconv_last(score)
-#
-#         ret['logits'] = score
-#         ret['deconv'] = deconv_final
-#         return ret
-#
-
-
 class FCNDecoder(nn.Module):
     def __init__(self, decode_layers, decode_channels=[], decode_last_stride=8):
         super(FCNDecoder, self).__init__()
@@ -187,18 +142,20 @@ class FCNDecoder(nn.Module):
 
         self._conv_layers = []
         for _ch in self._decode_channels:
-            self._conv_layers.append(nn.Conv2d(_ch, self._out_channel, kernel_size=1, bias=False))
+            self._conv_layers.append(nn.Conv2d(_ch, self._out_channel, kernel_size=1, bias=False).to(DEVICE))
 
         self._conv_final = nn.Conv2d(self._out_channel, 2, kernel_size=1, bias=False)
         self._deconv = nn.ConvTranspose2d(self._out_channel, self._out_channel, kernel_size=4, stride=2, padding=1,
                                           bias=False)
 
-        self._deconv_final = nn.ConvTranspose2d(self._out_channel, self._out_channel, kernel_size=16, stride=8,
+        self._deconv_final = nn.ConvTranspose2d(self._out_channel, self._out_channel, kernel_size=16,
+                                                stride=decode_last_stride,
                                                 padding=4, bias=False)
 
     def forward(self, encode_data):
         ret = {}
         input_tensor = encode_data[self._decode_layers[0]]
+        input_tensor.cuda()
         score = self._conv_layers[0](input_tensor)
         for i, layer in enumerate(self._decode_layers[1:]):
             deconv = self._deconv(score)

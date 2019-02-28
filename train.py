@@ -2,7 +2,10 @@ import time
 import os
 import sys
 
+from tqdm import tqdm
+
 import torch
+from torch import cuda
 from data_loader.data_loaders import LaneDataSet
 from data_loader.transformers import Rescale
 from model.lanenet import LaneNet, compute_loss
@@ -18,6 +21,7 @@ import cv2
 
 # might want this in the transformer part as well
 VGG_MEAN = [103.939, 116.779, 123.68]
+DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 
 def compose_img(image_data, out, binary_label, pix_embedding, instance_label, i):
@@ -68,11 +72,13 @@ def train(train_loader, model, optimizer, epoch):
     end = time.time()
     step = 0
 
-    for batch_idx, batch in enumerate(train_loader):
+    t = tqdm(enumerate(iter(train_loader)), leave=False, total=len(train_loader))
+
+    for batch_idx, batch in t:
         step += 1
-        image_data = Variable(batch[0]).type(torch.FloatTensor)
-        binary_label = Variable(batch[1]).type(torch.LongTensor)
-        instance_label = Variable(batch[2]).type(torch.FloatTensor)
+        image_data = Variable(batch[0]).type(torch.FloatTensor).to(DEVICE)
+        binary_label = Variable(batch[1]).type(torch.LongTensor).to(DEVICE)
+        instance_label = Variable(batch[2]).type(torch.FloatTensor).to(DEVICE)
 
         # forward pass
         net_output = model(image_data)
@@ -99,17 +105,17 @@ def train(train_loader, model, optimizer, epoch):
         batch_time.update(time.time() - end)
         end = time.time()
 
-        if np.isnan(total_loss.item()) or np.isnan(binary_loss.item()) or np.isnan(instance_loss.item()):
-            print('cost is: {:.5f}'.format(total_loss.item()))
-            print('binary cost is: {:.5f}'.format(binary_loss.item()))
-            print('instance cost is: {:.5f}'.format(instance_loss.item()))
-            # image_data[0].view(image_data[0].size()[2],image_data[0].size()[1], image_data[0].size()[0]).cpu().numpy()
-            cv2.imwrite('nan_image.png', image_data[0].view(image_data[0].size()[1], image_data[0].size()[2],
-                                                            image_data[0].size()[0]).cpu().numpy() + VGG_MEAN)
-            cv2.imwrite('nan_instance_label.png', image_data[0].view(image_data[0].size()[1], image_data[0].size()[2],
-                                                                     image_data[0].size()[0]).cpu().numpy())
-            cv2.imwrite('nan_binary_label.png', binary_label[0].cpu().numpy() * 255)
-            # cv2.imwrite('nan_embedding.png', pix_embedding[0].cpu().numpy().transpose(1, 2, 0))
+        # if np.isnan(total_loss.item()) or np.isnan(binary_loss.item()) or np.isnan(instance_loss.item()):
+        # print('cost is: {:.5f}'.format(total_loss.item()))
+        # print('binary cost is: {:.5f}'.format(binary_loss.item()))
+        # print('instance cost is: {:.5f}'.format(instance_loss.item()))
+        # image_data[0].view(image_data[0].size()[2],image_data[0].size()[1], image_data[0].size()[0]).cpu().numpy()
+        # cv2.imwrite('nan_image.png', image_data[0].view(image_data[0].size()[1], image_data[0].size()[2],
+        #                                                image_data[0].size()[0]).cpu().numpy() + VGG_MEAN)
+        # cv2.imwrite('nan_instance_label.png', image_data[0].view(image_data[0].size()[1], image_data[0].size()[2],
+        #                                                         image_data[0].size()[0]).cpu().numpy())
+        # cv2.imwrite('nan_binary_label.png', binary_label[0].cpu().numpy() * 255)
+        # cv2.imwrite('nan_embedding.png', pix_embedding[0].cpu().numpy().transpose(1, 2, 0))
         if step % 500 == 0:
             print(
                 "Epoch {ep} Step {st} |({batch}/{size})| ETA: {et:.2f}|Total:{tot:.5f}|Binary:{bin:.5f}|Instance:{ins:.5f}|IoU:{iou:.5f}".format(
@@ -142,19 +148,22 @@ def main():
         os.makedirs(save_path)
 
     train_dataset_file = os.path.join(args.dataset, 'train.txt')
-    val_dataset_file = os.path.join(args.dataset, 'val.txt')
+    # val_dataset_file = os.path.join(args.dataset, 'val.txt')
 
     train_dataset = LaneDataSet(train_dataset_file, transform=transforms.Compose([Rescale((512, 256))]))
-    val_dataset = LaneDataSet(val_dataset_file, transform=transforms.Compose([Rescale((512, 256))]))
+    # val_dataset = LaneDataSet(val_dataset_file, transform=transforms.Compose([Rescale((512, 256))]))
 
     model = LaneNet()
+    model.to(DEVICE)
 
-    train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=4, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
+    # val_loader = DataLoader(val_dataset, batch_size=8, shuffle=True)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
+    print(f"{args.epochs} epochs {len(train_dataset)} training samples\n")
 
     for epoch in range(0, args.epochs):
+        print(f"Epoch {epoch}")
         train_iou = train(train_loader, model, optimizer, epoch)
         # val_iou = test(val_loader, model, epoch)
         if (epoch + 1) % 5 == 0:

@@ -1,4 +1,14 @@
 from train import AverageMeter
+import time
+import os
+
+import torch
+from torch import cuda
+from torch.autograd import Variable
+
+import numpy as np
+import cv2
+
 
 def test(val_loader, model, epoch):
     model.eval()

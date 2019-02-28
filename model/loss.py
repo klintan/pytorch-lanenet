@@ -11,6 +11,8 @@ from torch.autograd import Variable
 import torch
 from torch.functional import F
 
+DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
 
 class DiscriminativeLoss(_Loss):
 
@@ -37,6 +39,9 @@ class DiscriminativeLoss(_Loss):
 
         input = input.contiguous().view(bs, n_features, height * width)
         target = target.contiguous().view(bs, max_n_clusters, height * width)
+
+        input.to(DEVICE)
+        target.to(DEVICE)
 
         c_means = self._cluster_means(input, target, n_clusters)
         l_var = self._variance_term(input, target, c_means, n_clusters)
@@ -128,9 +133,8 @@ class DiscriminativeLoss(_Loss):
             diff = means_a - means_b
 
             margin = 2 * self.delta_dist * (1.0 - torch.eye(n_clusters[i]))
-            margin = Variable(margin)
-            if self.usegpu:
-                margin = margin.cuda()
+            margin = Variable(margin).to(DEVICE)
+
             c_dist = torch.sum(torch.clamp(margin - torch.norm(diff, self.norm, 0), min=0) ** 2)
             dist_term += c_dist / (2 * n_clusters[i] * (n_clusters[i] - 1))
         dist_term /= bs

@@ -58,7 +58,7 @@ class VGGEncoder(nn.Module):
             seq.add_module("relu_{}_{}".format(block_id, i + 2), self.pretrained_modules[i + 1])
             seq.add_module("conv_{}_{}".format(block_id, i + 3), self.pretrained_modules[i + 2])
             seq.add_module("relu_{}_{}".format(block_id, i + 4), self.pretrained_modules[i + 3])
-            seq.add_module("maxpool" + str(block_id), self.pretrained_modules[i + 4)
+            seq.add_module("maxpool" + str(block_id), self.pretrained_modules[i + 4])
         return seq
 
     def forward(self, input_tensor):

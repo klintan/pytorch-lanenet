@@ -8,7 +8,16 @@ https://github.com/sacmehta/ESPNet
 
 Using ESPNet as Encoder-Decoder instead of ENet.
 
-## Train
+
+## Installation
+
+`python setup.py install`
+
+
+## Usage
+
+
+### Train
 
 To train on the test data included in the repo,
 
@@ -16,8 +25,15 @@ To train on the test data included in the repo,
 
 
 #### Custom dataset
-For a custom dataset, the easiest approach is to make sure it follows the format laid out in the data folder.
-Alternatively write a custom pytorch dataset class.
+To train on a custom dataset, the easiest approach is to make sure it follows the format laid out in the data folder.
+Alternatively write a custom PyTorch dataset class (if you do, feel free to provide a PR) 
+
+
+### Test
+
+
+
+
 
 ## Resources
 

@@ -1,4 +1,4 @@
-from train import AverageMeter
+from lanenet.train import AverageMeter
 import time
 import os
 

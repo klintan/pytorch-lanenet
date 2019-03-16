@@ -5,12 +5,11 @@ Shared encoders (U-net).
 import torch
 import torch.nn as nn
 from collections import OrderedDict
-from torch.nn import init
 
 import torchvision.models as models
 
-from model.blocks import RegularBottleneck, DownsamplingBottleneck, InitialBlock, InputProjectionA, \
-    DilatedParallelResidualBlockB, DownSamplerB, C, CB, CBR, BR
+from lanenet.model.blocks import RegularBottleneck, DownsamplingBottleneck, InitialBlock, InputProjectionA, \
+    DilatedParallelResidualBlockB, DownSamplerB, C, CBR, BR
 
 
 class VGGEncoder(nn.Module):

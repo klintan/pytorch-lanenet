@@ -10,11 +10,9 @@ import sys
 import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from model.loss import DiscriminativeLoss
-from model.encoders import VGGEncoder
-from model.decoders import FCNDecoder
-
-import torchvision.models as models
+from lanenet.model.loss import DiscriminativeLoss
+from lanenet.model.encoders import VGGEncoder
+from lanenet.model.decoders import FCNDecoder
 
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 

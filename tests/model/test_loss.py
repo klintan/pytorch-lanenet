@@ -1,7 +1,6 @@
-import pytest
 import torch
 
-from model.loss import HNetLoss
+from lanenet.model import HNetLoss
 
 
 def test_hnet():

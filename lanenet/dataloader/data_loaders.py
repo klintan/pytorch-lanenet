@@ -14,7 +14,7 @@ from torchvision import datasets, transforms
 import random
 
 class LaneDataSet(Dataset):
-    def __init__(self, dataset, transform):
+    def __init__(self, dataset, transform=None):
         self._gt_img_list = []
         self._gt_label_binary_list = []
         self._gt_label_instance_list = []

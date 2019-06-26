@@ -6,8 +6,8 @@ from tqdm import tqdm
 
 import torch
 from torch import cuda
-from lanenet.data_loader.data_loaders import LaneDataSet
-from lanenet.data_loader.transformers import Rescale
+from lanenet.dataloader.data_loaders import LaneDataSet
+from lanenet.dataloader.transformers import Rescale
 from lanenet.model import LaneNet, compute_loss
 from torch.utils.data import DataLoader
 from torch.autograd import Variable

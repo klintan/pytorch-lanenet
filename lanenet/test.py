@@ -3,7 +3,6 @@ import time
 import os
 
 import torch
-from torch import cuda
 from torch.autograd import Variable
 
 import numpy as np

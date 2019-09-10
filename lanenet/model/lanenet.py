@@ -6,10 +6,7 @@ https://arxiv.org/pdf/1807.01726.pdf
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import sys
-import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from lanenet.model.loss import DiscriminativeLoss
 from lanenet.model.encoders import VGGEncoder
 from lanenet.model.decoders import FCNDecoder

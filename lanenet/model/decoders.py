@@ -154,7 +154,7 @@ class FCNDecoder(nn.Module):
     def forward(self, encode_data):
         ret = {}
         input_tensor = encode_data[self._decode_layers[0]]
-        input_tensor.cuda()
+        input_tensor.to(DEVICE)
         score = self._conv_layers[0](input_tensor)
         for i, layer in enumerate(self._decode_layers[1:]):
             deconv = self._deconv(score)

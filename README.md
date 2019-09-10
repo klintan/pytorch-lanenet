@@ -21,7 +21,7 @@ Using ESPNet as Encoder-Decoder instead of ENet.
 
 To train on the test data included in the repo,
 
-`python3 train.py --dataset ./data/training_data_example`
+`python3 lanenet/train.py --dataset ./data/training_data_example`
 
 
 #### Custom dataset

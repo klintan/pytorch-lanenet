@@ -13,12 +13,14 @@ from torchvision import datasets, transforms
 
 import random
 
+
 class LaneDataSet(Dataset):
-    def __init__(self, dataset, transform=None):
+    def __init__(self, dataset, n_labels=5, transform=None):
         self._gt_img_list = []
         self._gt_label_binary_list = []
         self._gt_label_instance_list = []
         self.transform = transform
+        self.n_labels = n_labels
 
         with open(dataset, 'r') as file:
             for _info in file:
@@ -41,13 +43,13 @@ class LaneDataSet(Dataset):
     def _split_instance_gt(self, label_instance_img):
         # number of channels, number of unique pixel values, subtracting no label
         # adapted from here https://github.com/nyoki-mtl/pytorch-discriminative-loss/blob/master/src/dataset.py
-        no_of_instances = 5
-        #no_of_instances = np.unique(label_instance_img).shape[0]-1
-        ins = np.zeros((no_of_instances, label_instance_img.shape[0],label_instance_img.shape[1]))
+        no_of_instances = self.n_labels
+        ins = np.zeros((no_of_instances, label_instance_img.shape[0], label_instance_img.shape[1]))
         for _ch, label in enumerate(np.unique(label_instance_img)[1:]):
             ins[_ch, label_instance_img == label] = 1
 
         return ins
+
     def __len__(self):
         return len(self._gt_img_list)
 
@@ -61,7 +63,6 @@ class LaneDataSet(Dataset):
         label_instance_img = cv2.imread(self._gt_label_instance_list[idx], cv2.IMREAD_UNCHANGED)
 
         label_img = cv2.imread(self._gt_label_binary_list[idx], cv2.IMREAD_COLOR)
-
 
         # optional transformations
         if self.transform:
@@ -80,7 +81,6 @@ class LaneDataSet(Dataset):
         label_binary = np.zeros([label_img.shape[0], label_img.shape[1]], dtype=np.uint8)
         mask = np.where((label_img[:, :, :] != [0, 0, 0]).all(axis=2))
         label_binary[mask] = 1
-
 
         # we could split the instance label here, each instance in one channel (basically a binary mask for each)
         return (img, label_binary, label_instance_img)

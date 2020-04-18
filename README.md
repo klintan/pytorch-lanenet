@@ -52,9 +52,4 @@ ENet: A Deep Neural Network Architecture for Real-Time Semantic Segmentation
 
 https://arxiv.org/abs/1606.02147
 
-
-LaneNet: Real-Time Lane Detection Networks for Autonomous Driving (This is a very similar paper, which unfortunately calls the architecture exactly the same as in 1)
-
-https://arxiv.org/pdf/1807.01726.pdf
-
 https://maybeshewill-cv.github.io/lanenet-lane-detection/

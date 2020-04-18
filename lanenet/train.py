@@ -8,7 +8,7 @@ import torch
 from torch import cuda
 from lanenet.dataloader.data_loaders import LaneDataSet
 from lanenet.dataloader.transformers import Rescale
-from lanenet.model.lanenet import LaneNet, compute_loss
+from lanenet.model.model import LaneNet, compute_loss
 from torch.utils.data import DataLoader
 from torch.autograd import Variable
 
@@ -156,7 +156,7 @@ def main():
     model = LaneNet()
     model.to(DEVICE)
 
-    train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True)
     # val_loader = DataLoader(val_dataset, batch_size=8, shuffle=True)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)

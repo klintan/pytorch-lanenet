@@ -8,7 +8,7 @@ from collections import OrderedDict
 
 import torchvision.models as models
 
-from lanenet.model.blocks import RegularBottleneck, DownsamplingBottleneck, InitialBlock, InputProjectionA, \
+from model.blocks import RegularBottleneck, DownsamplingBottleneck, InitialBlock, InputProjectionA, \
     DilatedParallelResidualBlockB, DownSamplerB, C, CBR, BR
 
 

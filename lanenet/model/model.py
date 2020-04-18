@@ -39,7 +39,7 @@ class LaneNet(nn.Module):
 
         self._pix_layer = nn.Conv2d(in_channels=64, out_channels=self.no_of_instances, kernel_size=1, bias=False).to(
             DEVICE)
-        self.relu = nn.ReLU().cuda()
+        self.relu = nn.ReLU().to(DEVICE)
 
     def forward(self, input_tensor):
         encode_ret = self._encoder(input_tensor)
@@ -47,26 +47,24 @@ class LaneNet(nn.Module):
 
         decode_logits = decode_ret['logits']
 
-        if torch.cuda.is_available():
-            decode_logits = decode_logits.cuda()
+        decode_logits = decode_logits.to(DEVICE)
 
         binary_seg_ret = torch.argmax(F.softmax(decode_logits, dim=1), dim=1, keepdim=True)
 
         decode_deconv = decode_ret['deconv']
         pix_embedding = self.relu(self._pix_layer(decode_deconv))
 
-        ret = {
+        return {
             'instance_seg_logits': pix_embedding,
             'binary_seg_pred': binary_seg_ret,
             'binary_seg_logits': decode_logits
         }
 
-        return ret
-
 
 def compute_loss(net_output, binary_label, instance_label):
     k_binary = 0.7
     k_instance = 0.3
+    k_dist = 1.0
 
     ce_loss_fn = nn.CrossEntropyLoss()
     binary_seg_logits = net_output["binary_seg_logits"]
@@ -74,11 +72,11 @@ def compute_loss(net_output, binary_label, instance_label):
 
     pix_embedding = net_output["instance_seg_logits"]
     ds_loss_fn = DiscriminativeLoss(0.5, 1.5, 1.0, 1.0, 0.001)
-
-    instance_loss, _, _, _ = ds_loss_fn(pix_embedding, instance_label, [5] * len(pix_embedding))
+    var_loss, dist_loss, reg_loss = ds_loss_fn(pix_embedding, instance_label)
     binary_loss = binary_loss * k_binary
-    instance_loss = instance_loss * k_instance
-    total_loss = binary_loss + instance_loss
+    instance_loss = var_loss * k_instance
+    dist_loss = dist_loss * k_dist
+    total_loss = binary_loss + instance_loss + dist_loss
     out = net_output["binary_seg_pred"]
     iou = 0
     batch_size = out.size()[0]

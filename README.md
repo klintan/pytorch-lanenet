@@ -24,10 +24,18 @@ To train on the test data included in the repo,
 `python3 lanenet/train.py --dataset ./data/training_data_example`
 
 
+#### TUSimple dataset
+Download TUsimple dataset from https://github.com/TuSimple/tusimple-benchmark/issues/3
+
+When done run the script in the `scripts`-folder (From https://github.com/MaybeShewill-CV/lanenet-lane-detection)
+`python tusimple_transform.py --src_dir <directory of downloaded tusimple>`
+
+After this run training as before:
+`python3 lanenet/train.py --dataset <tusimple_transform script output folder>`
+
 #### Custom dataset
 To train on a custom dataset, the easiest approach is to make sure it follows the format laid out in the data folder.
 Alternatively write a custom PyTorch dataset class (if you do, feel free to provide a PR) 
-
 
 ### Test
 

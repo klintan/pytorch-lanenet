@@ -6,4 +6,8 @@ etc
 lib
 .Python
 *.pyc
-
+data/tusimple
+checkpoints
+output
+*.egg-info
+dist

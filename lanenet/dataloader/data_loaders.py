@@ -83,4 +83,4 @@ class LaneDataSet(Dataset):
         label_binary[mask] = 1
 
         # we could split the instance label here, each instance in one channel (basically a binary mask for each)
-        return (img, label_binary, label_instance_img)
+        return img, label_binary, label_instance_img

@@ -14,7 +14,8 @@ setup(
         'torchvision',
         'opencv-python',
         'numpy',
-        'tqdm'
+        'tqdm',
+        'scikit-image'
     ],
     author='Andreas Klintberg',
     maintainer='Andreas Klintberg',

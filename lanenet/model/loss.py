@@ -68,7 +68,7 @@ class DiscriminativeLoss(_Loss):
 
                 # ---------- var_loss -------------
                 var_loss = var_loss + torch.mean(F.relu(
-                    torch.norm(embedding_i - mean_i, dim=1) - self.delta_var) ** 2) / num_lanes
+                    torch.norm(embedding_i - mean_i, dim=0) - self.delta_var) ** 2) / num_lanes
             centroid_mean = torch.stack(centroid_mean)  # (n_lane, embed_dim)
 
             if num_lanes > 1:
